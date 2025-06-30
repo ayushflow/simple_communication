@@ -1,0 +1,27 @@
+.dart_tool/
+.idea/
+.vscode/
+.packages
+.pub/
+build/
+*.iml
+*.log
+.git/
+.gitignore
+README.md
+
+# Don't ignore the example directory
+!example/
+
+# But do ignore build artifacts in example
+example/build/
+example/.dart_tool/
+example/.packages
+example/.pub/
+
+# Platform-specific folders (not needed for web)
+example/ios/
+example/android/
+example/windows/
+example/linux/
+example/macos/
