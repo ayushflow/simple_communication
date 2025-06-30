@@ -5,7 +5,7 @@ All notable changes to the `simple_communication` package will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-01-XX
+## [1.0.0] - 2025-06-30
 
 ### Added
 - **Cross-platform communication**: Bridge communication between Flutter web and native apps
@@ -107,7 +107,7 @@ SimpleCommunicationProvider(
 )
 ```
 
-## [0.0.1] - 2024-01-XX
+## [0.0.1] - 2025-06-27
 
 ### Initial Release
 - Basic native-Flutter web communication
@@ -122,14 +122,3 @@ SimpleCommunicationProvider(
 
 - **1.0.0**: Production-ready release with web-to-web communication, configurable logging, and improved architecture
 - **0.0.1**: Initial prototype with basic native-web communication
-
-## Future Plans
-
-- [ ] Add support for message encryption
-- [ ] Implement message queuing for offline scenarios
-- [ ] Add support for file transfer between apps
-- [ ] Create Flutter web plugin for easier integration
-- [ ] Add support for cross-origin communication
-- [ ] Implement message compression for large payloads
-- [ ] Add support for message routing and filtering
-- [ ] Create development tools for debugging communication
