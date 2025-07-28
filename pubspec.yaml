@@ -1,6 +1,6 @@
 name: simple_communication
 description: "A lightweight Flutter package for seamless communication between Flutter web apps and native applications, as well as between multiple Flutter web apps on the same domain."
-version: 1.0.1
+version: 1.1.0
 homepage: https://github.com/ayushflow/simple_communication
 repository: https://github.com/ayushflow/simple_communication
 

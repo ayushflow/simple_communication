@@ -6,6 +6,7 @@ A lightweight Flutter package for seamless communication between Flutter web app
 
 - 🌐 **Cross-Platform Communication**: Bridge communication between Flutter web and native apps
 - 🔗 **Web-to-Web Communication**: Enable communication between multiple Flutter web apps on the same domain
+- 📡 **Modern API Support**: Uses BroadcastChannel API for optimal performance with localStorage fallback
 - 🎯 **Targeted Messaging**: Send messages to specific apps or broadcast to all
 - 📡 **Auto-Detection**: Automatically chooses the best communication method
 - 💾 **Shared Session Management**: Share data across all apps on the same domain
@@ -13,6 +14,8 @@ A lightweight Flutter package for seamless communication between Flutter web app
 - ✅ **Message Acknowledgment**: Reliable message delivery with acknowledgment system
 - 🛡️ **Error Handling**: Robust error handling with fallback mechanisms
 - 📝 **Configurable Logging**: Enable/disable console logging for production use
+- 🧹 **Memory Management**: Automatic cleanup of old messages and corrupted data
+- 🔄 **Queue System**: Support for multiple concurrent messages without overwrites
 
 ## Getting Started
 
@@ -22,7 +25,7 @@ Add `simple_communication` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  simple_communication: ^1.0.0
+  simple_communication: ^1.1.0
 ```
 
 ### Basic Setup
@@ -67,6 +70,13 @@ The package supports three communication types:
 - **`CommunicationType.auto`** (default): Automatically chooses between native and web communication
 - **`CommunicationType.native`**: Forces native communication only
 - **`CommunicationType.web`**: Forces web-to-web communication only
+
+### Web Communication Methods
+
+The package automatically uses the best available communication method:
+
+1. **BroadcastChannel API** (Primary): Modern, real-time communication for supported browsers
+2. **localStorage Queue System** (Fallback): Reliable fallback for older browsers with message queuing
 
 ### URL Scheme Configuration
 
@@ -216,6 +226,7 @@ class _MyWidgetState extends State<MyWidget> {
     super.dispose();
   }
 }
+```
 
 #### Using Static Instance (Alternative)
 ```dart
@@ -607,6 +618,7 @@ SimpleCommunicationProvider(
 2. **Native communication fails**: Verify URL scheme is properly configured in native apps
 3. **Session data not shared**: Check that apps are using the same domain and localStorage is available
 4. **Logging not working**: Ensure `enableLogging` is set to `true` or use `SimpleCommunication.logEnabled = true`
+5. **Old browser compatibility**: The package automatically falls back to localStorage for older browsers
 
 ### Debug Mode
 

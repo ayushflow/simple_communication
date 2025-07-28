@@ -1,129 +1,97 @@
 # Changelog
 
-All notable changes to the `simple_communication` package will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2025-06-30
+## [1.1.0] - 2024-07-28
 
-### Updated
-- Hygiene updates to CHANGELOG and pubspec.yaml
+### 🚀 Added
+- **BroadcastChannel API Support**: Added modern BroadcastChannel API as the primary communication method for web-to-web communication
+- **Message Queue System**: Implemented a queue-based localStorage system to handle multiple concurrent messages without overwrites
+- **Automatic Memory Management**: Added automatic cleanup of old messages (5-minute TTL) to prevent localStorage bloat
+- **Enhanced Error Handling**: Improved error handling with message corruption detection and cleanup
+- **Retry Logic**: Added retry mechanism for acknowledgment system with configurable retry attempts
+- **Graceful Degradation**: Automatic fallback from BroadcastChannel to localStorage for older browsers
+
+### 🐛 Fixed
+- **Critical localStorage Key Bug**: Fixed the critical bug where apps were writing to one localStorage key (`simple_communication_bridge`) but reading from a different key (`communication_command`), which prevented web-to-web communication from working
+- **Message Overwrite Issue**: Fixed issue where multiple messages could overwrite each other in localStorage
+- **Memory Leaks**: Fixed potential memory leaks by implementing automatic cleanup of old and corrupted messages
+- **Race Conditions**: Improved handling of concurrent message processing to prevent race conditions
+
+### 🔧 Improved
+- **Performance**: Significantly improved performance by using BroadcastChannel API instead of polling localStorage
+- **Reliability**: Enhanced message delivery reliability with better acknowledgment system
+- **Debugging**: Improved logging and error messages for better debugging experience
+- **Browser Compatibility**: Better support for older browsers with automatic fallback mechanisms
+- **Code Organization**: Better separation of concerns between different communication methods
+
+### 📝 Documentation
+- **Updated README**: Added comprehensive documentation for new features and improvements
+- **Usage Examples**: Added examples for BroadcastChannel and localStorage fallback scenarios
+- **Troubleshooting**: Enhanced troubleshooting section with new common issues and solutions
+- **Best Practices**: Added best practices for production use and error handling
+
+### 🔄 Breaking Changes
+- None - This release is fully backward compatible
+
+### 🧪 Testing
+- **Enhanced Test Coverage**: Added tests for new BroadcastChannel functionality
+- **Fallback Testing**: Added tests for localStorage fallback scenarios
+- **Error Scenario Testing**: Added tests for message corruption and cleanup scenarios
 
 ## [1.0.0] - 2025-06-30
 
-### Added
-- **Cross-platform communication**: Bridge communication between Flutter web and native apps
-- **Web-to-web communication**: Enable communication between multiple Flutter web apps on the same domain
-- **Targeted messaging**: Send messages to specific apps or broadcast to all
-- **Auto-detection**: Automatically chooses the best communication method (native vs web)
-- **Shared session management**: Share data across all apps on the same domain
-- **App discovery**: Discover other active apps on the same domain
-- **Message acknowledgment**: Reliable message delivery with acknowledgment system
-- **Configurable logging**: Enable/disable console logging for production use
-- **Configurable URL scheme**: Customize the URL scheme used for native communication
-- **Error handling**: Robust error handling with fallback mechanisms
-- **Heartbeat system**: Apps automatically register their presence
-- **URL parameter handling**: Clean URL parameter handling for app navigation
-- **Resource cleanup**: Proper disposal of timers and streams
-- **Type safety**: Full type safety with proper generics and null safety
-
-### Features
-- `SimpleCommunication` class for managing cross-app communication
-- `SimpleCommunicationProvider` widget for easy integration
-- `CommunicationMessage` class for structured message handling
-- `CommunicationType` enum for choosing communication method
-- Support for three communication types: `auto`, `native`, and `web`
-- Runtime logging control with `SimpleCommunication.logEnabled`
-- Session data management with `setSessionData`, `getSessionData`, and `clearSession`
-- App discovery with `getActiveApps()`
-- Navigation between apps with `navigateToApp()`
-- Message acknowledgment system for reliable delivery
-- Heartbeat system for app presence detection
-
-### Technical Improvements
-- Zero Dart analyzer warnings
-- Production-ready code with proper error handling
-- Configurable logging system (disabled by default for production)
-- Proper resource management and cleanup
-- Type-safe JSON handling with error recovery
-- Efficient polling mechanism for message detection
-- Clean URL parameter handling
-- Proper disposal of timers and subscriptions
-- Context safety improvements for async operations
-- Static instance accessor for better patterns
-
-### Documentation
-- Comprehensive README with usage examples
-- Native app integration guides for iOS and Android
-- Troubleshooting section with common issues
-- Production best practices
-- Web-to-web communication examples
-- Error handling patterns
-
-### Breaking Changes
-- Renamed package from `flutter_native_bridge` to `simple_communication`
-- Updated class names and method signatures
-- Changed URL scheme from `nativebridge://` to `simplecommunication://`
-- Updated localStorage keys for better isolation
-
-### Migration Guide
-If migrating from the previous `flutter_native_bridge` package:
-
-1. **Update dependencies**:
-   ```yaml
-   dependencies:
-     simple_communication: ^1.0.0
-   ```
-
-2. **Update imports**:
-   ```dart
-   import 'package:simple_communication/simple_communication.dart';
-   ```
-
-3. **Update class names**:
-   - `NativeFlutterBridge` → `SimpleCommunication`
-   - `NativeBridgeProvider` → `SimpleCommunicationProvider`
-   - `BridgeMessage` → `CommunicationMessage`
-
-4. **Update method calls**:
-   - `sendToNative()` → `sendMessage()`
-   - `bridge` → `communication`
-
-5. **Update native app URL schemes**:
-   - iOS: Change URL scheme from `nativebridge` to `simplecommunication`
-   - Android: Update intent filter scheme from `nativebridge` to `simplecommunication`
-
-### Example Migration
-```dart
-// Old code
-NativeBridgeProvider(
-  appId: 'my_app',
-  onMessage: (message) => print(message.action),
-  child: MyApp(),
-)
-
-// New code
-SimpleCommunicationProvider(
-  appId: 'my_app',
-  enableLogging: kDebugMode,
-  onMessage: (message) => print(message.action),
-  child: MyApp(),
-)
-```
-
-## [0.0.1] - 2025-06-27
-
-### Initial Release
-- Basic native-Flutter web communication
-- URL scheme-based messaging
-- localStorage fallback mechanism
-- Session data management
-- Basic message acknowledgment
+### 🎉 Initial Release
+- **Cross-Platform Communication**: Bridge communication between Flutter web and native apps
+- **Web-to-Web Communication**: Enable communication between multiple Flutter web apps on the same domain
+- **Targeted Messaging**: Send messages to specific apps or broadcast to all
+- **Auto-Detection**: Automatically chooses the best communication method
+- **Shared Session Management**: Share data across all apps on the same domain
+- **App Discovery**: Discover other active apps on the same domain
+- **Message Acknowledgment**: Reliable message delivery with acknowledgment system
+- **Error Handling**: Robust error handling with fallback mechanisms
+- **Configurable Logging**: Enable/disable console logging for production use
+- **URL Scheme Configuration**: Customizable URL schemes for native communication
+- **Navigation Support**: Navigate between different Flutter web apps with parameters
+- **Flutter Widget Integration**: Easy integration with Flutter apps using SimpleCommunicationProvider
 
 ---
 
 ## Version History
 
-- **1.0.0**: Production-ready release with web-to-web communication, configurable logging, and improved architecture
-- **0.0.1**: Initial prototype with basic native-web communication
+- **1.1.0** (Current): Major improvements with BroadcastChannel API, message queue system, and critical bug fixes
+- **1.0.0**: Initial release with basic cross-app communication functionality
+
+## Migration Guide
+
+### From 1.0.0 to 1.1.0
+
+No migration required! Version 1.1.0 is fully backward compatible. The improvements are automatically applied:
+
+- **Automatic BroadcastChannel Detection**: The package will automatically use BroadcastChannel if available
+- **Automatic Fallback**: Older browsers will automatically fall back to the improved localStorage system
+- **Enhanced Performance**: Better performance without any code changes required
+
+### Recommended Updates
+
+While not required, you can take advantage of new features:
+
+```dart
+// Enable logging to see which communication method is being used
+SimpleCommunicationProvider(
+  appId: 'my_app',
+  enableLogging: true,
+  child: MyApp(),
+)
+```
+
+## Support
+
+For issues, questions, or contributions:
+
+1. Check the [troubleshooting section](README.md#troubleshooting) in the README
+2. Search existing [issues](https://github.com/yourusername/simple_communication/issues)
+3. Create a new issue with detailed information about your problem

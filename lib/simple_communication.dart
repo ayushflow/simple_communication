@@ -24,9 +24,13 @@ class SimpleCommunication {
   Timer? _heartbeatTimer;
   String _urlScheme = 'simplecommunication'; // Default URL scheme
 
-  // Configuration
-  static const String _bridgeKey = 'simple_communication_bridge';
-  static const String _commandKey = 'communication_command';
+  // Web communication
+  html.BroadcastChannel? _channel;
+  bool _useBroadcastChannel = false;
+
+  // Configuration - Fixed: Use consistent keys
+  static const String _messageQueuePrefix = 'msg_';
+  static const String _messageCounter = 'msg_counter';
   static const String _ackPrefix = 'ack_';
   static const Duration _pollInterval = Duration(milliseconds: 100);
   static const Duration _ackTimeout = Duration(seconds: 5);
@@ -50,12 +54,58 @@ class SimpleCommunication {
     }
     _appId = appId;
     _communicationType = communicationType;
+    _initializeWebCommunication();
     _startListening();
 
     // Check for initial data in URL
     _checkUrlParams();
     if (_logEnabled) {
       print('[SimpleCommunication] Initialization complete');
+    }
+  }
+
+  /// Initialize web communication with BroadcastChannel fallback to localStorage
+  void _initializeWebCommunication() {
+    try {
+      _channel = html.BroadcastChannel('simple_communication');
+      _channel!.onMessage.listen(_handleBroadcastMessage);
+      _useBroadcastChannel = true;
+      if (_logEnabled) {
+        print(
+            '[SimpleCommunication] BroadcastChannel initialized successfully');
+      }
+    } catch (e) {
+      _useBroadcastChannel = false;
+      if (_logEnabled) {
+        print(
+            '[SimpleCommunication] BroadcastChannel not supported, using localStorage fallback');
+      }
+    }
+  }
+
+  /// Handle messages from BroadcastChannel
+  void _handleBroadcastMessage(html.MessageEvent event) {
+    try {
+      final data = event.data as Map<String, dynamic>;
+      final message = CommunicationMessage.fromJson(data);
+
+      // Check if message is for this app or broadcast
+      if (message.target == null || message.target == _appId) {
+        if (_logEnabled) {
+          print(
+              '[SimpleCommunication] Received broadcast message: ${message.action}');
+        }
+
+        // Send acknowledgment
+        _sendAcknowledgment(message.id);
+
+        // Emit message
+        _messageController.add(message);
+      }
+    } catch (e) {
+      if (_logEnabled) {
+        print('[SimpleCommunication] Error handling broadcast message: $e');
+      }
     }
   }
 
@@ -102,9 +152,9 @@ class SimpleCommunication {
     if (!success &&
         (_communicationType == CommunicationType.web ||
             _communicationType == CommunicationType.auto)) {
-      // Fallback to web-to-web communication
+      // Use web communication (BroadcastChannel or localStorage)
       if (_logEnabled) {
-        print('[SimpleCommunication] Using web-to-web communication');
+        print('[SimpleCommunication] Using web communication');
       }
       success = await _sendViaWeb(message);
     }
@@ -270,45 +320,57 @@ class SimpleCommunication {
   }
 
   void _checkForMessages() {
-    final command = html.window.localStorage[_commandKey];
-    if (command != null && command.isNotEmpty) {
-      if (_logEnabled) {
-        print('[SimpleCommunication] Found command in localStorage: $command');
-      }
+    // Only check localStorage if not using BroadcastChannel
+    if (_useBroadcastChannel) {
+      return; // BroadcastChannel handles messages automatically
+    }
 
-      try {
-        final data = jsonDecode(command) as Map<String, dynamic>;
-        final message = CommunicationMessage.fromJson(data);
+    // Check all message keys in the queue
+    final messageKeys = html.window.localStorage.keys
+        .where((k) => k.startsWith(_messageQueuePrefix))
+        .toList()
+      ..sort(); // Process in order
 
-        // Check if message is for this app or broadcast
-        if (message.target == null || message.target == _appId) {
+    for (final key in messageKeys) {
+      final data = html.window.localStorage[key];
+      if (data != null) {
+        try {
+          final messageData = jsonDecode(data) as Map<String, dynamic>;
+          final message = CommunicationMessage.fromJson(messageData);
+
+          // Check if message is for this app or broadcast
+          if (message.target == null || message.target == _appId) {
+            if (_logEnabled) {
+              print(
+                  '[SimpleCommunication] Processing message: ${message.action} with data: ${message.data}');
+            }
+
+            // Send acknowledgment
+            _sendAcknowledgment(message.id);
+
+            // Emit message
+            _messageController.add(message);
+            if (_logEnabled) {
+              print('[SimpleCommunication] Message emitted to stream');
+            }
+          } else {
+            if (_logEnabled) {
+              print('[SimpleCommunication] Message not for this app, skipping');
+            }
+          }
+
+          // Remove processed message
+          html.window.localStorage.remove(key);
           if (_logEnabled) {
             print(
-                '[SimpleCommunication] Processing message: ${message.action} with data: ${message.data}');
+                '[SimpleCommunication] Message removed from localStorage: $key');
           }
-
-          // Send acknowledgment
-          _sendAcknowledgment(message.id);
-
-          // Emit message
-          _messageController.add(message);
+        } catch (e) {
           if (_logEnabled) {
-            print('[SimpleCommunication] Message emitted to stream');
+            print('[SimpleCommunication] Error parsing message: $e');
           }
-        } else {
-          if (_logEnabled) {
-            print('[SimpleCommunication] Message not for this app, skipping');
-          }
-        }
-
-        // Clear command
-        html.window.localStorage.remove(_commandKey);
-        if (_logEnabled) {
-          print('[SimpleCommunication] Command cleared from localStorage');
-        }
-      } catch (e) {
-        if (_logEnabled) {
-          print('[SimpleCommunication] Error parsing message: $e');
+          // Remove corrupted message
+          html.window.localStorage.remove(key);
         }
       }
     }
@@ -406,10 +468,14 @@ class SimpleCommunication {
     }
 
     try {
-      html.window.localStorage[_bridgeKey] = jsonEncode(message);
-      if (_logEnabled) {
-        print(
-            '[SimpleCommunication] Message stored in localStorage with key: $_bridgeKey');
+      if (_useBroadcastChannel) {
+        _channel!.postMessage(message);
+        if (_logEnabled) {
+          print('[SimpleCommunication] Message sent via BroadcastChannel');
+        }
+      } else {
+        // Use localStorage with queue system
+        return await _sendViaLocalStorage(message);
       }
       return true;
     } catch (e) {
@@ -417,6 +483,73 @@ class SimpleCommunication {
         print('[SimpleCommunication] Web communication failed: $e');
       }
       return false;
+    }
+  }
+
+  /// Send message via localStorage with queue system
+  Future<bool> _sendViaLocalStorage(Map<String, dynamic> message) async {
+    try {
+      // Generate unique message key
+      final messageKey = _getNextMessageKey();
+      html.window.localStorage[messageKey] = jsonEncode({
+        ...message,
+        'key': messageKey,
+        'created': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      if (_logEnabled) {
+        print(
+            '[SimpleCommunication] Message stored in localStorage with key: $messageKey');
+      }
+
+      // Clean up old messages (prevent localStorage bloat)
+      _cleanupOldMessages();
+
+      return true;
+    } catch (e) {
+      if (_logEnabled) {
+        print('[SimpleCommunication] localStorage send failed: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Generate next message key for queue system
+  String _getNextMessageKey() {
+    final counter =
+        int.parse(html.window.localStorage[_messageCounter] ?? '0') + 1;
+    html.window.localStorage[_messageCounter] = counter.toString();
+    return '${_messageQueuePrefix}${counter.toString().padLeft(10, '0')}';
+  }
+
+  /// Clean up old messages to prevent localStorage bloat
+  void _cleanupOldMessages() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final maxAge = const Duration(minutes: 5).inMilliseconds;
+
+    final keysToRemove = <String>[];
+    for (final key in html.window.localStorage.keys) {
+      if (key.startsWith(_messageQueuePrefix)) {
+        try {
+          final data = html.window.localStorage[key];
+          if (data != null) {
+            final messageData = jsonDecode(data) as Map<String, dynamic>;
+            final created = messageData['created'] as int? ?? 0;
+            if (now - created > maxAge) {
+              keysToRemove.add(key);
+            }
+          }
+        } catch (e) {
+          keysToRemove.add(key);
+        }
+      }
+    }
+
+    for (final key in keysToRemove) {
+      html.window.localStorage.remove(key);
+      if (_logEnabled) {
+        print('[SimpleCommunication] Cleaned up old message: $key');
+      }
     }
   }
 
@@ -441,10 +574,13 @@ class SimpleCommunication {
 
     final completer = Completer<bool>();
     final ackKey = '$_ackPrefix$messageId';
-    Timer? timeoutTimer;
-    Timer? pollTimer;
+    final maxRetries = 3;
+    int retryCount = 0;
 
-    pollTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+    Timer? pollTimer;
+    Timer? timeoutTimer;
+
+    pollTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (html.window.localStorage[ackKey] != null) {
         if (_logEnabled) {
           print(
@@ -459,13 +595,22 @@ class SimpleCommunication {
     });
 
     timeoutTimer = Timer(_ackTimeout, () {
-      if (_logEnabled) {
-        print(
-            '[SimpleCommunication] Acknowledgment timeout for message: $messageId');
-      }
-
       pollTimer?.cancel();
-      completer.complete(false);
+      if (retryCount < maxRetries) {
+        retryCount++;
+        if (_logEnabled) {
+          print(
+              '[SimpleCommunication] Acknowledgment timeout, retry $retryCount/$maxRetries');
+        }
+        // Could implement retry logic here if needed
+        completer.complete(false);
+      } else {
+        if (_logEnabled) {
+          print(
+              '[SimpleCommunication] Acknowledgment failed after $maxRetries attempts');
+        }
+        completer.complete(false);
+      }
     });
 
     return completer.future;
@@ -498,6 +643,10 @@ class SimpleCommunication {
     // Remove heartbeat
     if (_appId != null) {
       html.window.localStorage.remove('app_heartbeat_$_appId');
+    }
+
+    if (_channel != null) {
+      _channel!.close();
     }
 
     if (_logEnabled) {
